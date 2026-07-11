@@ -1,0 +1,20 @@
+[package]
+name = "devlog"
+version = "0.1.0"
+edition = "2021"
+description = "Generate daily worklogs from Claude Code session transcripts and git logs"
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+ureq = { version = "2", features = ["json"] }
+dirs = "5"
+
+[profile.release]
+lto = true
+strip = true
