@@ -1,57 +1,12 @@
+use crate::activity::{
+    clean_prompt, truncate, SessionActivity, Source, MAX_ACTIONS_PER_SESSION,
+    MAX_PROMPTS_PER_SESSION,
+};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-
-/// Activity extracted from one Claude Code session, restricted to entries
-/// whose timestamp falls inside the report range.
-#[derive(Debug)]
-pub struct SessionActivity {
-    pub title: Option<String>,
-    pub cwd: PathBuf,
-    pub git_branch: Option<String>,
-    pub first_ts: DateTime<Utc>,
-    pub last_ts: DateTime<Utc>,
-    pub prompts: Vec<String>,
-    pub files_touched: BTreeSet<String>,
-    pub actions: Vec<String>,
-}
-
-impl SessionActivity {
-    /// Human-readable project name derived from the working directory.
-    pub fn project(&self) -> String {
-        self.cwd
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| self.cwd.display().to_string())
-    }
-
-    /// A session with a title but no prompts/edits/actions in range is
-    /// noise (e.g. an open idle window).
-    pub fn is_empty(&self) -> bool {
-        self.prompts.is_empty() && self.files_touched.is_empty() && self.actions.is_empty()
-    }
-}
-
-const MAX_PROMPT_CHARS: usize = 300;
-const MAX_PROMPTS_PER_SESSION: usize = 20;
-const MAX_ACTIONS_PER_SESSION: usize = 30;
-
-/// Prompts starting with these markers are harness noise, not user intent.
-const PROMPT_NOISE_PREFIXES: &[&str] = &[
-    "<local-command",
-    "<command-name>",
-    "<system-reminder>",
-    "<task-notification",
-    "Caveat:",
-    "[Request interrupted",
-    // Skill bodies injected by the harness when a skill is invoked.
-    "Base directory for this skill",
-    // Terminal output pasted into the prompt; the surrounding requests
-    // and shell actions already describe that work.
-    "➜",
-];
 
 /// Walk `<claude_projects_dir>/*/*.jsonl` and collect per-session activity
 /// within [start, end).
@@ -151,6 +106,7 @@ fn parse_file(
         let session = sessions
             .entry(session_id.to_string())
             .or_insert_with(|| SessionActivity {
+                source: Source::Claude,
                 title: None,
                 cwd: PathBuf::from(value["cwd"].as_str().unwrap_or(".")),
                 git_branch: value["gitBranch"].as_str().map(String::from),
@@ -183,24 +139,16 @@ fn extract_prompt(value: &Value) -> Option<String> {
     let content = &value["message"]["content"];
     let text = if let Some(s) = content.as_str() {
         s.to_string()
-    } else if let Some(items) = content.as_array() {
-        items
+    } else {
+        content
+            .as_array()?
             .iter()
             .filter(|i| i["type"] == "text")
             .filter_map(|i| i["text"].as_str())
             .collect::<Vec<_>>()
             .join("\n")
-    } else {
-        return None;
     };
-    let text = text.trim();
-    if text.is_empty() {
-        return None;
-    }
-    if PROMPT_NOISE_PREFIXES.iter().any(|p| text.starts_with(p)) {
-        return None;
-    }
-    Some(truncate(text, MAX_PROMPT_CHARS))
+    clean_prompt(&text)
 }
 
 /// Record file edits and shell actions from assistant tool_use blocks.
@@ -233,14 +181,5 @@ fn extract_tool_uses(value: &Value, session: &mut SessionActivity) {
             }
             _ => {}
         }
-    }
-}
-
-fn truncate(s: &str, max_chars: usize) -> String {
-    if s.chars().count() <= max_chars {
-        s.to_string()
-    } else {
-        let truncated: String = s.chars().take(max_chars).collect();
-        format!("{truncated}…")
     }
 }

@@ -1,3 +1,5 @@
+mod activity;
+mod codex;
 mod config;
 mod gitlog;
 mod report;
@@ -70,7 +72,9 @@ fn generate(args: GenerateArgs) -> Result<()> {
     let start = local_midnight(start_date);
     let end = local_midnight(end_date + Duration::days(1));
 
-    let sessions = transcript::collect(&config.claude_projects_dir, start, end)?;
+    let mut sessions = transcript::collect(&config.claude_projects_dir, start, end)?;
+    sessions.extend(codex::collect(&config.codex_sessions_dir, start, end)?);
+    sessions.sort_by_key(|s| s.first_ts);
     // Candidate repo locations: session working directories plus the
     // directories of files edited during sessions (work often targets a
     // repo outside the session cwd).

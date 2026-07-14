@@ -1,6 +1,6 @@
 # devlog Usage Guide
 
-A CLI tool that generates daily worklogs from your Claude Code session transcripts and git logs.
+A CLI tool that generates daily worklogs from your Claude Code and Codex session transcripts and git logs.
 
 Everything runs locally — your session content and code never leave your machine (the only network call is to your own Ollama endpoint).
 
@@ -8,9 +8,11 @@ Everything runs locally — your session content and code never leave your machi
 
 ## How it works
 
-1. Extracts the day's activity from Claude Code transcripts (`~/.claude/projects/**/*.jsonl`): session titles, your actual requests, files edited, and shell actions. Harness noise (tool results, injected skill bodies, subagent sidechains) is filtered out automatically
+1. Extracts the day's activity from your coding-agent transcripts — Claude Code (`~/.claude/projects/**/*.jsonl`) and Codex (`~/.codex/sessions/**/*.jsonl`): session titles, your actual requests, and files edited. Harness noise (tool results, injected skill bodies, subagent sidechains, AGENTS.md/environment injection) is filtered out automatically
 2. Auto-discovers the git repositories you worked in — from session working directories *and* from the paths of files edited during sessions — and collects that day's commits
 3. Summarizes everything into a per-project Markdown report using a local LLM via Ollama (default: `qwen2.5:14b`)
+
+Each session in the report is tagged with its source (`[Claude Code]` / `[Codex]`), and work on the same repository from both agents is grouped under one project heading.
 
 ## Install
 
@@ -66,13 +68,14 @@ Works without any configuration. To override defaults, create `~/.config/devlog/
 ```toml
 # All fields optional; defaults shown.
 claude_projects_dir = "~/.claude/projects"
+codex_sessions_dir = "~/.codex/sessions"
 repos = []                            # repos to always scan, besides auto-discovered ones
 ollama_url = "http://localhost:11434"
 model = "qwen2.5:14b"
 lang = "ja"
 ```
 
-Repo auto-discovery only finds repositories you touched through Claude Code that day. List repos you also work on by hand in `repos` so their commits aren't missed.
+Repo auto-discovery only finds repositories you touched through an agent that day. List repos you also work on by hand in `repos` so their commits aren't missed. If either agent's directory doesn't exist, that source is simply skipped.
 
 ## Troubleshooting
 
@@ -84,4 +87,4 @@ Repo auto-discovery only finds repositories you touched through Claude Code that
 
 - Heading language ("プロジェクト:" vs "Project:") can vary between runs (LLM output jitter)
 - When a session runs from a directory outside the repo it edits, work may be attributed to the session directory's name rather than the repo
-- The only data source today is Claude Code transcripts (Codex and others are planned)
+- Codex sessions carry no title (the first prompt is used as a stand-in) and no per-session git branch; Codex shell actions are omitted since they run as opaque JS, though edited files are still captured

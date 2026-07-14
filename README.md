@@ -1,6 +1,6 @@
 # devlog
 
-Generate daily worklogs from your Claude Code session transcripts and git logs — fully local, powered by Ollama.
+Generate daily worklogs from your Claude Code and Codex session transcripts and git logs — fully local, powered by Ollama.
 
 If you spend your day driving coding agents, the record of what you did already exists: the agent's session transcripts and your git history. `devlog` reads both and writes your daily report so you don't have to.
 
@@ -8,9 +8,9 @@ If you spend your day driving coding agents, the record of what you did already 
 
 ## How it works
 
-1. Parses Claude Code transcripts (`~/.claude/projects/**/*.jsonl`) for the target day: session titles, your actual requests, files edited, shell actions. Harness noise (tool results, injected skill bodies, subagent sidechains) is filtered out.
+1. Parses your coding-agent transcripts for the target day — Claude Code (`~/.claude/projects/**/*.jsonl`) and Codex (`~/.codex/sessions/**/*.jsonl`): session titles, your actual requests, files edited. Harness noise (tool results, injected skill bodies, subagent sidechains, AGENTS.md/environment injection) is filtered out.
 2. Auto-discovers the git repositories you worked in — from session working directories *and* from the files edited during sessions — and collects that day's commits.
-3. Sends the collected activity to a local LLM via Ollama (default: `qwen2.5:14b`) to produce a concise, grouped-by-project Markdown report. Nothing leaves your machine.
+3. Sends the collected activity to a local LLM via Ollama (default: `qwen2.5:14b`) to produce a concise, grouped-by-project Markdown report. Each session is tagged with its source (`[Claude Code]` / `[Codex]`). Nothing leaves your machine.
 
 ## Usage
 
@@ -34,6 +34,7 @@ Optional, at `~/.config/devlog/config.toml`:
 ```toml
 # All fields optional; defaults shown.
 claude_projects_dir = "~/.claude/projects"
+codex_sessions_dir = "~/.codex/sessions"
 repos = []                                # extra repos beyond auto-discovered ones
 ollama_url = "http://localhost:11434"
 model = "qwen2.5:14b"

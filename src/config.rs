@@ -7,6 +7,8 @@ use std::path::PathBuf;
 pub struct Config {
     /// Directory containing Claude Code project transcripts.
     pub claude_projects_dir: PathBuf,
+    /// Directory containing Codex CLI session rollouts.
+    pub codex_sessions_dir: PathBuf,
     /// Extra git repositories to scan, in addition to those
     /// auto-discovered from session working directories.
     pub repos: Vec<PathBuf>,
@@ -23,6 +25,7 @@ impl Default for Config {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
         Self {
             claude_projects_dir: home.join(".claude/projects"),
+            codex_sessions_dir: home.join(".codex/sessions"),
             repos: Vec::new(),
             ollama_url: "http://localhost:11434".to_string(),
             model: "qwen2.5:14b".to_string(),
@@ -47,6 +50,7 @@ impl Config {
             toml::from_str(&text).with_context(|| format!("failed to parse {}", path.display()))?;
         config.repos = config.repos.into_iter().map(expand_tilde).collect();
         config.claude_projects_dir = expand_tilde(config.claude_projects_dir);
+        config.codex_sessions_dir = expand_tilde(config.codex_sessions_dir);
         Ok(config)
     }
 }

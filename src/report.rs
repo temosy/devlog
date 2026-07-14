@@ -1,5 +1,5 @@
+use crate::activity::SessionActivity;
 use crate::gitlog::Commit;
-use crate::transcript::SessionActivity;
 use chrono::{DateTime, Local, NaiveDate, Utc};
 use clap::ValueEnum;
 use std::collections::BTreeMap;
@@ -79,8 +79,9 @@ pub fn render_raw_data(input: &ReportInput) -> String {
         for s in sessions {
             let branch = s.git_branch.as_deref().unwrap_or("-");
             out.push_str(&format!(
-                "### Session: {} ({}–{}, branch: {branch})\n",
+                "### Session: {} [{}] ({}–{}, branch: {branch})\n",
                 s.title.as_deref().unwrap_or("(untitled)"),
+                s.source.tag(),
                 fmt_local(s.first_ts),
                 fmt_local(s.last_ts),
             ));
