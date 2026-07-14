@@ -4,6 +4,8 @@ Generate daily worklogs from your Claude Code session transcripts and git logs �
 
 If you spend your day driving coding agents, the record of what you did already exists: the agent's session transcripts and your git history. `devlog` reads both and writes your daily report so you don't have to.
 
+📖 Detailed guides: [USAGE.md](USAGE.md) (English) / [USAGE.ja.md](USAGE.ja.md) (日本語)
+
 ## How it works
 
 1. Parses Claude Code transcripts (`~/.claude/projects/**/*.jsonl`) for the target day: session titles, your actual requests, files edited, shell actions. Harness noise (tool results, injected skill bodies, subagent sidechains) is filtered out.
